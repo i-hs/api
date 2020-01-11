@@ -12,7 +12,7 @@ class CustomJSONEncoder(JSONEncoder):
 app = Flask(__name__)
 app.id_count = 1
 app.users = {}
-app.tweet = []
+app.tweets = []
 app.follow = []
 app.json_encoder = CustomJSONEncoder
 
@@ -45,7 +45,7 @@ def tweet():
         return '300자를 초과했습니다.', 400
     user_id = int(payload['id'])
 
-    app.tweet.append({
+    app.tweets.append({
         'user_id': user_id,
         'tweet': tweet
     })
@@ -75,3 +75,17 @@ def unfollow():
     user = app.users[user_id]
     user.setdefault('follow', set()).discard(user_id_to_unfollow)
     return jsonify(user)
+
+
+@app.route('/timeline/<int:user_id>', methods=['GET'])
+def timeline(user_id):
+    if user_id not in app.users:
+        return '사용자가 존재하지 않습니다.', 400
+
+    follow_list = app.users[user_id].get('follow', set())
+    follow_list.add(user_id)
+    timeline = [tweet for tweet in app.tweets if tweet['user_id'] in follow_list]
+    return jsonify({
+        'user_id': user_id,
+        'timeline': timeline
+    })
