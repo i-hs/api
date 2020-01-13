@@ -12,7 +12,7 @@ class CustomJSONEncoder(JSONEncoder):
 
 
 def insert_user(user):
-    return current_a:pp.database.execute(text("""
+    return current_app.database.execute(text("""
             INSERT INTO users(name, email, profile, hashed_password) VALUES (
                 :name, :email, :profile, :password 
             )
@@ -63,7 +63,7 @@ def insert_unfollow(user_unfollow):
     DELETE FROM users_follow_list
     WHERE user_id = :id
     AND follow_user_id = : unfollow
-    """), user_unfollow.rowcount
+    """), user_unfollow).rowcount
 
 def get_timeline(user_id):
     timeline = current_app.database.execute(text("""
@@ -148,7 +148,7 @@ def create_app(test_config=None):
 
         if len(tweet) > 300:
             return '300자를 초과했습니다.', 400
-        
+
         insert_tweet(user_tweet)
         return '', 200
 
@@ -164,7 +164,7 @@ def create_app(test_config=None):
         payload = request.json
         insert_follow(payload)
         return '', 200
-    
+
 
     @app.route('/timeline/<int:user_id>', methods=['GET'])
     def timeline(user_id):
@@ -172,6 +172,6 @@ def create_app(test_config=None):
             'user_id' : user_id,
             'timeline' : get_timeline(user_id)
             })
-    return app
+        return app
 
 
