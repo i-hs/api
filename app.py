@@ -86,12 +86,12 @@ def get_timeline(user_id):
 
 
 
-# app = Flask(__name__)
-# app.id_count = 1
-# app.users = {}
-# app.tweets = []
-# app.follow = []
-# app.json_encoder = CustomJSONEncoder
+ # app = Flask(__name__)
+ # app.id_count = 1
+ # app.users = {}
+ # app.tweets = []
+ # app.follow = []
+ # app.json_encoder = CustomJSONEncoder
 
 
 
