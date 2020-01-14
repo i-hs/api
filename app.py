@@ -89,26 +89,6 @@ def get_timeline(user_id):
     } for tweet in timeline]
 
 
-# app = Flask(__name__)
-# app.id_count = 1
-# app.users = {}
-# app.tweets = []
-# app.follow = []
-# app.json_encoder = CustomJSONEncoder
-
-
-"""
-@app.route("/sign-up", methods=['POST'])
-def sign_up():
-    new_user = request.json
-    new_user["id"] = app.id_count
-    app.users[app.id_count] = new_user
-    app.id_count += 1
-
-
-    return jsonify(new_user)
-"""
-
 
 def create_app(test_config=None):
     app = Flask(__name__)
