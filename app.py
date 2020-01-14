@@ -134,7 +134,7 @@ def create_app(test_config=None):
     @app.route('/unfollow', methods=['POST'])
     def unfollow():
         payload = request.json
-        insert_follow(payload)
+        insert_unfollow(payload)
         return '', 200
 
     @app.route('/timeline/<int:user_id>', methods=['GET'])
