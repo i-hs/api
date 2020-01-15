@@ -1,6 +1,11 @@
-from flask      import Flask, request, jsonify, current_app
+import jwt
+import bcrypt
+from flask import Flask, request, jsonify, current_app
 from flask.json import JSONEncoder
 from sqlalchemy import create_engine, text
+from datetime import datetime, timedelta
+from functools import wraps
+
 
 ## Default JSON encoder는 set를 JSON으로 변환할 수 없다.
 ## 그럼으로 커스텀 엔코더를 작성해서 set을 list로 변환하여
@@ -12,6 +17,7 @@ class CustomJSONEncoder(JSONEncoder):
 
         return JSONEncoder.default(self, obj)
 
+
 def get_user(user_id):
     user = current_app.database.execute(text("""
         SELECT 
@@ -22,15 +28,16 @@ def get_user(user_id):
         FROM users
         WHERE id = :user_id
     """), {
-        'user_id' : user_id 
+        'user_id': user_id
     }).fetchone()
 
     return {
-        'id'      : user['id'],
-        'name'    : user['name'],
-        'email'   : user['email'],
-        'profile' : user['profile']
+        'id': user['id'],
+        'name': user['name'],
+        'email': user['email'],
+        'profile': user['profile']
     } if user else None
+
 
 def insert_user(user):
     return current_app.database.execute(text("""
@@ -47,6 +54,7 @@ def insert_user(user):
         )
     """), user).lastrowid
 
+
 def insert_tweet(user_tweet):
     return current_app.database.execute(text("""
         INSERT INTO tweets (
@@ -57,6 +65,7 @@ def insert_tweet(user_tweet):
             :tweet
         )
     """), user_tweet).rowcount
+
 
 def insert_follow(user_follow):
     return current_app.database.execute(text("""
@@ -69,12 +78,14 @@ def insert_follow(user_follow):
         )
     """), user_follow).rowcount
 
+
 def insert_unfollow(user_unfollow):
     return current_app.database.execute(text("""
         DELETE FROM users_follow_list
         WHERE user_id = :id
         AND follow_user_id = :unfollow
     """), user_unfollow).rowcount
+
 
 def get_timeline(user_id):
     timeline = current_app.database.execute(text("""
@@ -86,15 +97,23 @@ def get_timeline(user_id):
         WHERE t.user_id = :user_id 
         OR t.user_id = ufl.follow_user_id
     """), {
-        'user_id' : user_id 
+        'user_id': user_id
     }).fetchall()
 
     return [{
-        'user_id' : tweet['user_id'],
-        'tweet'   : tweet['tweet']
+        'user_id': tweet['user_id'],
+        'tweet': tweet['tweet']
     } for tweet in timeline]
 
-def create_app(test_config = None):
+
+def get_password(user_password):
+    return bcrypt.hashpw(
+        user_password.encode('UTF-8'),
+        bcrypt.gensalt()
+    )
+
+
+def create_app(test_config=None):
     app = Flask(__name__)
 
     app.json_encoder = CustomJSONEncoder
@@ -104,7 +123,7 @@ def create_app(test_config = None):
     else:
         app.config.update(test_config)
 
-    database     = create_engine(app.config['DB_URL'], encoding = 'utf-8', max_overflow = 0)
+    database = create_engine(app.config['DB_URL'], encoding='utf-8', max_overflow=0)
     app.database = database
 
     @app.route("/ping", methods=['GET'])
@@ -113,16 +132,17 @@ def create_app(test_config = None):
 
     @app.route("/sign-up", methods=['POST'])
     def sign_up():
-        new_user    = request.json
+        new_user = request.json
+        new_user['password'] = get_password(new_user['password'])
         new_user_id = insert_user(new_user)
-        new_user    = get_user(new_user_id)
+        new_user = get_user(new_user_id)
 
         return jsonify(new_user)
 
     @app.route('/tweet', methods=['POST'])
     def tweet():
         user_tweet = request.json
-        tweet      = user_tweet['tweet']
+        tweet = user_tweet['tweet']
 
         if len(tweet) > 300:
             return '300자를 초과했습니다', 400
@@ -134,7 +154,7 @@ def create_app(test_config = None):
     @app.route('/follow', methods=['POST'])
     def follow():
         payload = request.json
-        insert_follow(payload) 
+        insert_follow(payload)
 
         return '', 200
 
@@ -148,9 +168,34 @@ def create_app(test_config = None):
     @app.route('/timeline/<int:user_id>', methods=['GET'])
     def timeline(user_id):
         return jsonify({
-            'user_id'  : user_id,
-            'timeline' : get_timeline(user_id)
+            'user_id': user_id,
+            'timeline': get_timeline(user_id)
         })
 
-    return app
+    @app.route('/login', methods=['POST'])
+    def login():
+        credential = request.json
+        email = credential['email']
+        password = credential['password']
+        row = database.execute(text("""
+        SELECT
+        id,
+        hashed_password
+        FROM users
+        WHERE email = : email
+        """), {'email': email}).fetchone()
+        if row and bcrypt.checkpw(password.encode('UTF-8'), row['hashed_password'].encode('UTF-8')):
+            user_id = row['id']
+            payload = {
+                'user_id': user_id,
+                'exp': datetime.utcnow() + timedelta(seconds=60 * 60 * 24)
+            }
+            token = jwt.encode(payload, app.config['JWT_SECRET_KEY'],
+                               'HS256')
+            return jsonify({
+                'access_token': token.decode('UTF-8')
+            })
+        else:
+            return '', 401
 
+    return app
