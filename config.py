@@ -1,7 +1,5 @@
-from sqlalchemy import create_engine, text
-
 db = {
-    'user': 'root',
+    'user': 'test',
     'password': 'test1234',
     'host': 'localhost',
     'port': 3306,
@@ -9,9 +7,19 @@ db = {
 }
 
 DB_URL = f"mysql+mysqlconnector://{db['user']}:{db['password']}@{db['host']}:{db['port']}/{db['database']}?charset=utf8"
-# db = create_engine(db_url, encoding='utf-8', max_overflow=0)
-# params = {'name': '이현승'}
-# rows = db.execute(text("SELECT * FROM users WHERE name = :name"), params).fetchall()
-# for row in rows:
-#     print(f"name:{row['name']}")
-#     print(f"email:{row['email']}")
+JWT_SECRET_KEY = 'SOME_SUPER_SECRET_KEY'
+JWT_EXP_DELTA_SECONDS = 7 * 24 * 60 * 60
+
+test_db = {
+    'user': 'root',
+    'password': 'test1234',
+    'host': 'localhost',
+    'port': 3306,
+    'database': 'miniter_test'
+}
+
+test_config = {
+    'DB_URL': f"mysql+mysqlconnector://{test_db['user']}:{test_db['password']}@{test_db['host']}:{test_db['port']}/{test_db['database']}?charset=utf8",
+    'JWT_SECRET_KEY': 'SOME_SUPER_SECRET_KEY',
+    'JWT_EXP_DELTA_SECONDS': 7 * 24 * 60 * 60
+}
